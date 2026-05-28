@@ -1,0 +1,135 @@
+import { Injectable } from '@nestjs/common';
+
+export interface AssistanceRecord {
+  id: number;
+  studentRut: string;
+  classId: number;
+  subjectId: string;
+  date: Date;
+  present: boolean;
+}
+
+export interface ClassSession {
+  id: number;
+  subjectId: string;
+  date: Date;
+  registrationStatus: 'ENABLED' | 'DISABLED';
+}
+
+export interface StudentAssistance {
+  rut: string;
+  name: string;
+  classesAttended: number;
+  totalClasses: number;
+  assistancePercentage: number;
+}
+
+@Injectable()
+export class DataRepository {
+  // Level 1 — in-memory stores (replace the real DB in tests)
+  private assistances: AssistanceRecord[] = [];
+  private classes: ClassSession[] = [];
+  private enrollments: { studentRut: string; subjectId: string }[] = [];
+  private teachings: { professorRut: string; subjectId: string }[] = [];
+  private students: { rut: string; name: string }[] = [];
+
+  // ── seed helpers (used by the test fixtures) ──────────────────────────────
+  seedStudent(rut: string, name: string) {
+    this.students.push({ rut, name });
+  }
+  seedEnrollment(studentRut: string, subjectId: string) {
+    this.enrollments.push({ studentRut, subjectId });
+  }
+  seedClass(classSession: ClassSession) {
+    this.classes.push(classSession);
+  }
+  seedAssistance(record: AssistanceRecord) {
+    this.assistances.push(record);
+  }
+  seedTeaching(professorRut: string, subjectId: string) {
+    this.teachings.push({ professorRut, subjectId });
+  }
+  reset() {
+    this.assistances = [];
+    this.classes = [];
+    this.enrollments = [];
+    this.teachings = [];
+    this.students = [];
+  }
+
+  findStudent(rut: string): Promise<{ rut: string; name: string } | null> {
+    return Promise.resolve(this.students.find((s) => s.rut === rut) ?? null);
+  }
+
+  findAssistancesByStudentAndSubject(
+    studentRut: string,
+    subjectId: string,
+  ): Promise<AssistanceRecord[]> {
+    return Promise.resolve(
+      this.assistances.filter(
+        (a) => a.studentRut === studentRut && a.subjectId === subjectId,
+      ),
+    );
+  }
+
+  findClass(classId: number): Promise<ClassSession | null> {
+    return Promise.resolve(this.classes.find((c) => c.id === classId) ?? null);
+  }
+
+  assistanceExists(studentRut: string, classId: number): Promise<boolean> {
+    return Promise.resolve(
+      this.assistances.some(
+        (a) => a.studentRut === studentRut && a.classId === classId,
+      ),
+    );
+  }
+
+  insertAssistance(
+    record: Omit<AssistanceRecord, 'id'>,
+  ): Promise<AssistanceRecord> {
+    const created: AssistanceRecord = { id: Date.now(), ...record };
+    this.assistances.push(created);
+    return Promise.resolve(created);
+  }
+
+  findTeaching(professorRut: string, subjectId: string): Promise<boolean> {
+    return Promise.resolve(
+      this.teachings.some(
+        (t) => t.professorRut === professorRut && t.subjectId === subjectId,
+      ),
+    );
+  }
+
+  findStudentsAssistanceBySubject(
+    subjectId: string,
+  ): Promise<StudentAssistance[]> {
+    const enrolled = this.enrollments.filter((e) => e.subjectId === subjectId);
+    const subjectClasses = this.classes.filter(
+      (c) => c.subjectId === subjectId,
+    );
+    const totalClasses = subjectClasses.length;
+
+    return Promise.resolve(
+      enrolled.map((e) => {
+        const student = this.students.find((s) => s.rut === e.studentRut);
+        const classesAttended = this.assistances.filter(
+          (a) =>
+            a.studentRut === e.studentRut &&
+            a.subjectId === subjectId &&
+            a.present,
+        ).length;
+        const percentage =
+          totalClasses > 0
+            ? Math.round((classesAttended / totalClasses) * 100)
+            : 0;
+        return {
+          rut: e.studentRut,
+          name: student?.name ?? 'Unknown',
+          classesAttended,
+          totalClasses,
+          assistancePercentage: percentage,
+        };
+      }),
+    );
+  }
+}
