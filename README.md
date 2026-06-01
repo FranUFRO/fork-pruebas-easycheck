@@ -22,12 +22,17 @@ npm run build
 npm run test
 ```
 
-Escenarios 
-CU-01 BDD Pasar a Nest / Pruebas de Humo / Ian
-CU-02 BDD Fran
-CU-03 TDD Fran
-CU-04 Pruebas de Humo / Hacer pruebas unitarias
-CU-05 Pruebas de Humo / Hacer pruebas unitarias
-CU-07 Hacer pruebas unitarias
-CU-08 Hacer pruebas unitarias
-CU-09 TDD /Ian
+## Escenarios 
+
+1. CU-01 BDD Pasar a Nest / Pruebas de Humo / Ian
+2. CU-02 BDD Fran
+3. CU-03 TDD Fran
+4. CU-04 Pruebas de Humo / Hacer pruebas unitarias
+5. CU-05 Pruebas de Humo / Hacer pruebas unitarias
+6. CU-06 Pruebas de Humo / Hacer pruebas unitarias
+7. CU-07 Hacer pruebas unitarias
+8. CU-08 Hacer pruebas unitarias
+9. CU-09 TDD /Ian
+
+## Foro 8 SonarQube
+
