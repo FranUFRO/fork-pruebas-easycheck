@@ -9,10 +9,7 @@ export interface AuthUser {
   status: UserStatus;
 }
 
-/**
- * Capa de datos de autenticación. In-memory (igual que DataRepository).
- * Expone seedUser/reset para que los tests BDD preparen fixtures.
- */
+// Almacén de usuarios en memoria (igual que DataRepository).
 @Injectable()
 export class AuthRepository {
   private users: AuthUser[] = [];

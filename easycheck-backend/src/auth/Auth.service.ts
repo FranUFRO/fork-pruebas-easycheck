@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AuthRepository } from './Auth.repository';
+import { AuthRepository, UserRole } from './Auth.repository';
 import {
   EmptyCredentialsException,
   InvalidRutFormatException,
@@ -18,44 +18,49 @@ export interface LoginResult {
 }
 
 // RUT con dígito verificador: 7-8 dígitos, guion y DV (dígito o K).
-const RUT_PATTERN = /^\d{7,8}-[\dkK]$/;
+const RUT_WITH_CHECK_DIGIT = /^\d{7,8}-[\dkK]$/;
 
 @Injectable()
 export class AuthService {
   constructor(private readonly authRepository: AuthRepository) {}
 
-  async login(dto: LoginDto): Promise<LoginResult> {
+  login(dto: LoginDto): LoginResult {
     const rut = dto?.rut ?? '';
     const password = dto?.password ?? '';
 
-    // 1. Campos obligatorios
-    const emptyFields: string[] = [];
-    if (!rut) emptyFields.push('rut');
-    if (!password) emptyFields.push('password');
-    if (emptyFields.length > 0) {
-      throw new EmptyCredentialsException(emptyFields);
-    }
+    this.assertCredentialsPresent(rut, password);
+    this.assertValidRutFormat(rut);
 
-    // 2. Formato del RUT
-    if (!RUT_PATTERN.test(rut)) {
-      throw new InvalidRutFormatException(rut);
-    }
-
-    // 3. Existencia del usuario
-    const user = await this.authRepository.findByRut(rut);
+    const user = this.authRepository.findByRut(rut);
     if (!user) {
       throw new InvalidCredentialsException();
     }
-
-    // 4. Cuenta deshabilitada
     if (user.status === 'DISABLED') {
       throw new AccountDisabledException(rut);
     }
 
-    // 5. Autenticación correcta → redirección por rol
     return {
       role: user.role,
-      redirectUrl: `/${user.role}/home`,
+      redirectUrl: this.homeUrlFor(user.role),
     };
+  }
+
+  private assertCredentialsPresent(rut: string, password: string): void {
+    const missingFields: string[] = [];
+    if (!rut) missingFields.push('rut');
+    if (!password) missingFields.push('password');
+    if (missingFields.length > 0) {
+      throw new EmptyCredentialsException(missingFields);
+    }
+  }
+
+  private assertValidRutFormat(rut: string): void {
+    if (!RUT_WITH_CHECK_DIGIT.test(rut)) {
+      throw new InvalidRutFormatException(rut);
+    }
+  }
+
+  private homeUrlFor(role: UserRole): string {
+    return `/${role}/home`;
   }
 }

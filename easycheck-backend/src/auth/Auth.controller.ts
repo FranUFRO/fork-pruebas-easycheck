@@ -20,12 +20,11 @@ import {
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // POST /api/v1/auth/login
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() dto: LoginDto) {
+  login(@Body() dto: LoginDto) {
     try {
-      return await this.authService.login(dto);
+      return this.authService.login(dto);
     } catch (e) {
       if (e instanceof EmptyCredentialsException) {
         throw new BadRequestException({ message: e.message, fields: e.fields });
