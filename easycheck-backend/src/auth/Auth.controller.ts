@@ -1,5 +1,20 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  BadRequestException,
+  ForbiddenException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthService, LoginDto } from './Auth.service';
+import {
+  EmptyCredentialsException,
+  InvalidRutFormatException,
+  AccountDisabledException,
+  InvalidCredentialsException,
+} from '../common/exceptions';
 
 @Controller('api/v1/auth')
 export class AuthController {
@@ -9,7 +24,22 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto) {
-    // Fase RED: delega al servicio, que aún no implementa la lógica.
-    return this.authService.login(dto);
+    try {
+      return await this.authService.login(dto);
+    } catch (e) {
+      if (e instanceof EmptyCredentialsException) {
+        throw new BadRequestException({ message: e.message, fields: e.fields });
+      }
+      if (e instanceof InvalidRutFormatException) {
+        throw new BadRequestException({ message: e.message });
+      }
+      if (e instanceof AccountDisabledException) {
+        throw new ForbiddenException({ message: e.message });
+      }
+      if (e instanceof InvalidCredentialsException) {
+        throw new UnauthorizedException({ message: e.message });
+      }
+      throw e;
+    }
   }
 }

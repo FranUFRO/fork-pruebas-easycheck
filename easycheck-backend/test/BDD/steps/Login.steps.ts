@@ -8,6 +8,14 @@ import { AuthRepository } from '../../../src/auth/Auth.repository';
 
 const feature = loadFeature('./test/BDD/features/Login.feature');
 
+// supertest expone res.body como `any`; tipamos la forma esperada de la respuesta.
+interface LoginResponseBody {
+  role?: string;
+  redirectUrl?: string;
+  message?: string;
+  fields?: string[];
+}
+
 defineFeature(feature, (test) => {
   let app: INestApplication<App>;
   let repo: AuthRepository;
@@ -35,14 +43,22 @@ defineFeature(feature, (test) => {
   // ==========================================================================
   // Scenario: Inicio de sesión exitoso como estudiante
   // ==========================================================================
-  test('Inicio de sesión exitoso como estudiante', ({ given, and, when, then }) => {
+  test('Inicio de sesión exitoso como estudiante', ({
+    given,
+    and,
+    when,
+    then,
+  }) => {
     let rutIngresado: string;
     let passwordIngresada: string;
 
-    given(/^el usuario con RUT "(.*)" está registrado en el sistema con rol "estudiante"$/, (rut: string) => {
-      // Precondición: seed del usuario en el repo in-memory
-      repo.seedUser(rut, 'estudiante', 'ACTIVE');
-    });
+    given(
+      /^el usuario con RUT "(.*)" está registrado en el sistema con rol "estudiante"$/,
+      (rut: string) => {
+        // Precondición: seed del usuario en el repo in-memory
+        repo.seedUser(rut, 'estudiante', 'ACTIVE');
+      },
+    );
 
     and('el usuario se encuentra en el formulario de inicio de sesión', () => {
       // No requiere acción, es contexto UI
@@ -67,24 +83,39 @@ defineFeature(feature, (test) => {
       expect(response.status).toBe(HttpStatus.OK);
     });
 
-    and('el usuario es redirigido a la pantalla principal de estudiante', () => {
-      expect(response.body.redirectUrl).toBe('/estudiante/home');
-      expect(response.body.role).toBe('estudiante');
-    });
+    and(
+      'el usuario es redirigido a la pantalla principal de estudiante',
+      () => {
+        const body = response.body as LoginResponseBody;
+        expect(body.redirectUrl).toBe('/estudiante/home');
+        expect(body.role).toBe('estudiante');
+      },
+    );
   });
 
   // ==========================================================================
   // Scenario: Inicio de sesión exitoso como profesor
   // ==========================================================================
-  test('Inicio de sesión exitoso como profesor', ({ given, and, when, then }) => {
+  test('Inicio de sesión exitoso como profesor', ({
+    given,
+    and,
+    when,
+    then,
+  }) => {
     let rutIngresado: string;
     let passwordIngresada: string;
 
-    given(/^el usuario con RUT "(.*)" está registrado en el sistema con rol "profesor"$/, (rut: string) => {
-      repo.seedUser(rut, 'profesor', 'ACTIVE');
-    });
+    given(
+      /^el usuario con RUT "(.*)" está registrado en el sistema con rol "profesor"$/,
+      (rut: string) => {
+        repo.seedUser(rut, 'profesor', 'ACTIVE');
+      },
+    );
 
-    and('el usuario se encuentra en el formulario de inicio de sesión', () => {});
+    and(
+      'el usuario se encuentra en el formulario de inicio de sesión',
+      () => {},
+    );
 
     when(/^el usuario ingresa el RUT "(.*)"$/, (rut: string) => {
       rutIngresado = rut;
@@ -105,8 +136,9 @@ defineFeature(feature, (test) => {
     });
 
     and('el usuario es redirigido a la pantalla principal de profesor', () => {
-      expect(response.body.redirectUrl).toBe('/profesor/home');
-      expect(response.body.role).toBe('profesor');
+      const body = response.body as LoginResponseBody;
+      expect(body.redirectUrl).toBe('/profesor/home');
+      expect(body.role).toBe('profesor');
     });
   });
 
@@ -114,8 +146,10 @@ defineFeature(feature, (test) => {
   // Scenario: Inicio de sesión con campos vacíos
   // ==========================================================================
   test('Inicio de sesión con campos vacíos', ({ given, when, and, then }) => {
-
-    given('el usuario se encuentra en el formulario de inicio de sesión', () => {});
+    given(
+      'el usuario se encuentra en el formulario de inicio de sesión',
+      () => {},
+    );
 
     when('el usuario deja el campo RUT vacío', () => {});
 
@@ -132,29 +166,40 @@ defineFeature(feature, (test) => {
     });
 
     and(/^se muestra el mensaje "(.*)"$/, (mensaje: string) => {
-      expect(response.body.message).toBe(mensaje);
+      const body = response.body as LoginResponseBody;
+      expect(body.message).toBe(mensaje);
     });
 
     and('se marcan en rojo los campos vacíos', () => {
       // Validación de campos: el backend indica cuáles fallaron
-      expect(response.body.fields).toEqual(
-        expect.arrayContaining(['rut', 'password'])
-      );
+      const body = response.body as LoginResponseBody;
+      expect(body.fields).toEqual(expect.arrayContaining(['rut', 'password']));
     });
   });
 
   // ==========================================================================
   // Scenario: Inicio de sesión con cuenta deshabilitada
   // ==========================================================================
-  test('Inicio de sesión con cuenta deshabilitada', ({ given, and, when, then }) => {
+  test('Inicio de sesión con cuenta deshabilitada', ({
+    given,
+    and,
+    when,
+    then,
+  }) => {
     let rutIngresado: string;
     let passwordIngresada: string;
 
-    given(/^el usuario con RUT "(.*)" tiene su cuenta deshabilitada en EasyCheck$/, (rut: string) => {
-      repo.seedUser(rut, 'estudiante', 'DISABLED');
-    });
+    given(
+      /^el usuario con RUT "(.*)" tiene su cuenta deshabilitada en EasyCheck$/,
+      (rut: string) => {
+        repo.seedUser(rut, 'estudiante', 'DISABLED');
+      },
+    );
 
-    and('el usuario se encuentra en el formulario de inicio de sesión', () => {});
+    and(
+      'el usuario se encuentra en el formulario de inicio de sesión',
+      () => {},
+    );
 
     when(/^el usuario ingresa el RUT "(.*)"$/, (rut: string) => {
       rutIngresado = rut;
@@ -175,26 +220,38 @@ defineFeature(feature, (test) => {
     });
 
     and(/^se muestra el mensaje "(.*)"$/, (mensaje: string) => {
-      expect(response.body.message).toBe(mensaje);
+      const body = response.body as LoginResponseBody;
+      expect(body.message).toBe(mensaje);
     });
 
     and('el usuario permanece en el formulario de inicio de sesión', () => {
-      expect(response.body.redirectUrl).toBeUndefined();
+      const body = response.body as LoginResponseBody;
+      expect(body.redirectUrl).toBeUndefined();
     });
   });
 
   // ==========================================================================
   // Scenario: RUT sin dígito verificador
   // ==========================================================================
-  test('Inicio de sesión con RUT en formato sin dígito verificador', ({ given, when, and, then }) => {
+  test('Inicio de sesión con RUT en formato sin dígito verificador', ({
+    given,
+    when,
+    and,
+    then,
+  }) => {
+    given(
+      'el usuario se encuentra en el formulario de inicio de sesión',
+      () => {},
+    );
 
-    given('el usuario se encuentra en el formulario de inicio de sesión', () => {});
-
-    when(/^el usuario ingresa el RUT "(.*)" sin dígito verificador$/, async (rut: string) => {
-      response = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({ rut, password: 'cualquier_password' });
-    });
+    when(
+      /^el usuario ingresa el RUT "(.*)" sin dígito verificador$/,
+      async (rut: string) => {
+        response = await request(app.getHttpServer())
+          .post('/api/v1/auth/login')
+          .send({ rut, password: 'cualquier_password' });
+      },
+    );
 
     and('el usuario ingresa cualquier contraseña', () => {
       // Ya incluido en el when anterior
@@ -209,12 +266,13 @@ defineFeature(feature, (test) => {
     });
 
     and(/^se muestra el mensaje "(.*)"$/, (mensaje: string) => {
-      expect(response.body.message).toBe(mensaje);
+      const body = response.body as LoginResponseBody;
+      expect(body.message).toBe(mensaje);
     });
 
     and('el usuario permanece en el formulario de inicio de sesión', () => {
-      expect(response.body.redirectUrl).toBeUndefined();
+      const body = response.body as LoginResponseBody;
+      expect(body.redirectUrl).toBeUndefined();
     });
   });
-
 });
