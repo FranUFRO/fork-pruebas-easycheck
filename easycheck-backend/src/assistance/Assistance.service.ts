@@ -3,6 +3,7 @@ import {
   DataRepository,
   StudentAssistance,
   AssistanceRecord,
+  StudentSubjectAttendance,
 } from './Data.repository';
 import {
   StudentNotFoundException,
@@ -35,9 +36,67 @@ export interface AssistanceConfirmationDto {
   classId: number;
 }
 
+export interface StudentSubjectAttendanceDto extends StudentSubjectAttendance {
+  attendancePercentage: number;
+}
+
 @Injectable()
 export class AssistanceService {
   constructor(private readonly dataRepository: DataRepository) {}
+
+  async getStudentAttendanceByRut(
+    rut: string,
+  ): Promise<StudentSubjectAttendanceDto[]> {
+    if (!this.isValidRut(rut)) {
+      throw new Error(
+        'El RUT ingresado no es válido. Ingrese el RUT nuevamente.',
+      );
+    }
+
+    const student = await this.dataRepository.findStudent(rut);
+    if (!student) {
+      throw new Error('El estudiante ingresado no existe');
+    }
+
+    const attendanceRows =
+      await this.dataRepository.findStudentAttendanceByRut(rut);
+
+    return attendanceRows.map((row) => ({
+      ...row,
+      attendancePercentage:
+        row.totalClasses > 0
+          ? Math.round((row.attendedClasses / row.totalClasses) * 100)
+          : 0,
+    }));
+  }
+
+  private isValidRut(rut: string): boolean {
+    const cleanRut = rut.replace(/\./g, '').toUpperCase();
+    const match = cleanRut.match(/^(\d{7,8})-([\dK])$/);
+
+    if (!match) {
+      return false;
+    }
+
+    const [, body, verifier] = match;
+    let multiplier = 2;
+    let sum = 0;
+
+    for (let i = body.length - 1; i >= 0; i--) {
+      sum += Number(body[i]) * multiplier;
+      multiplier = multiplier === 7 ? 2 : multiplier + 1;
+    }
+
+    const expectedValue = 11 - (sum % 11);
+    const expectedVerifier =
+      expectedValue === 11
+        ? '0'
+        : expectedValue === 10
+          ? 'K'
+          : `${expectedValue}`;
+
+    return verifier === expectedVerifier;
+  }
 
   // ── IT-1 / IT-2: Show a student's assistance ─────────────────────────────
   async getStudentAssistance(
