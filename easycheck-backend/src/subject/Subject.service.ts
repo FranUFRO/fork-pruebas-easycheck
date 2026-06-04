@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { SubjectRepository } from './Subject.repository';
+import { Subject, SubjectRepository } from './Subject.repository';
+import {
+  MissingFieldsException,
+  InvalidFieldFormatException,
+  SubjectAlreadyExistsException,
+} from '../common/exceptions';
 
 export interface CreateSubjectDto {
   code: string;
@@ -9,40 +14,42 @@ export interface CreateSubjectDto {
 
 @Injectable()
 export class SubjectService {
+  private readonly invalidCharsRegex = /[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s-]/;
+
   constructor(private readonly subjectRepository: SubjectRepository) {}
 
-  async createSubject(dto: CreateSubjectDto): Promise<{ message: string }> {
-    // 1. Validar campos obligatorios
+  async createSubject(
+    dto: CreateSubjectDto,
+  ): Promise<{ message: string; subject: Subject }> {
+    this.validateRequiredFields(dto);
+    this.validateFieldFormat(dto);
+    await this.assertCodeIsUnique(dto.code);
+    const saved = await this.subjectRepository.save(dto);
+    return { message: 'Asignatura registrada correctamente', subject: saved };
+  }
+
+  private validateRequiredFields(dto: CreateSubjectDto): void {
     const missingFields = (['code', 'name', 'career'] as const).filter(
       (field) => !dto[field] || dto[field].trim() === '',
     );
     if (missingFields.length > 0) {
-      throw new Error('Debe completar los datos obligatorios');
+      throw new MissingFieldsException(missingFields);
     }
+  }
 
-    // 2. Validar caracteres no permitidos
-    const invalidCharsRegex = /[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s-]/;
-    if (
-      invalidCharsRegex.test(dto.code) ||
-      invalidCharsRegex.test(dto.name) ||
-      invalidCharsRegex.test(dto.career)
-    ) {
-      throw new Error('Caracteres no permitidos');
+  private validateFieldFormat(dto: CreateSubjectDto): void {
+    const invalidField = (['code', 'name', 'career'] as const).find((field) =>
+      this.invalidCharsRegex.test(dto[field]),
+    );
+    if (invalidField) {
+      throw new InvalidFieldFormatException(invalidField);
     }
+  }
 
-    // 3. Verificar que el código no exista previamente
-    const existing = await this.subjectRepository.findByCode(dto.code);
+  private async assertCodeIsUnique(code: string): Promise<void> {
+    const existing = await this.subjectRepository.findByCode(code);
     if (existing) {
-      throw new Error('El código ingresado ya existe en el sistema');
+      throw new SubjectAlreadyExistsException(code);
     }
-
-    // 4. Guardar la asignatura y retornar el mensaje de éxito
-    await this.subjectRepository.save({
-      code: dto.code,
-      name: dto.name,
-      career: dto.career,
-    });
-
-    return { message: 'Asignatura registrada correctamente' };
   }
 }
