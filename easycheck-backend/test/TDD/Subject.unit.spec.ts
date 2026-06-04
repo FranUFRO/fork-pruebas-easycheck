@@ -1,4 +1,5 @@
 import { SubjectService } from '../../src/subject/Subject.service';
+import { Subject } from '../../src/subject/Subject.repository';
 
 describe('CU-09 Registro de nueva asignatura (TDD)', () => {
   let service: SubjectService;
@@ -12,13 +13,14 @@ describe('CU-09 Registro de nueva asignatura (TDD)', () => {
       findByCode: jest.fn(),
       save: jest.fn(),
     };
-    // Inyectamos el repositorio mockeado, NO el repositorio real.
-    service = new SubjectService(repository as any);
+    service = new SubjectService(repository);
   });
 
   it('TC-CU09-01: registra una asignatura con datos válidos', async () => {
     repository.findByCode.mockResolvedValue(null);
-    repository.save.mockImplementation(async (subject) => subject);
+    repository.save.mockImplementation((subject: Subject) =>
+      Promise.resolve(subject),
+    );
 
     const result = await service.createSubject({
       code: 'INF-301',

@@ -8,11 +8,14 @@ export interface Subject {
 
 @Injectable()
 export class SubjectRepository {
-  async findByCode(code: string): Promise<Subject | null> {
-    return undefined as unknown as Subject | null;
+  private readonly subjects: Subject[] = [];
+
+  findByCode(code: string): Promise<Subject | null> {
+    return Promise.resolve(this.subjects.find((s) => s.code === code) ?? null);
   }
 
-  async save(subject: Subject): Promise<Subject> {
-    return undefined as unknown as Subject;
+  save(subject: Subject): Promise<Subject> {
+    this.subjects.push(subject);
+    return Promise.resolve(subject);
   }
 }

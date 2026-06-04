@@ -7,7 +7,7 @@ export class SubjectController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() dto: CreateSubjectDto): Promise<any> {
-    return undefined;
+  async create(@Body() dto: CreateSubjectDto): Promise<{ message: string }> {
+    return await this.subjectService.createSubject(dto);
   }
 }
