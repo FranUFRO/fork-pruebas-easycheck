@@ -24,6 +24,12 @@ export interface StudentAssistance {
   assistancePercentage: number;
 }
 
+export interface StudentSubjectAttendance {
+  subjectName: string;
+  attendedClasses: number;
+  totalClasses: number;
+}
+
 @Injectable()
 export class DataRepository {
   // Level 1 — in-memory stores (replace the real DB in tests)
@@ -69,6 +75,32 @@ export class DataRepository {
       this.assistances.filter(
         (a) => a.studentRut === studentRut && a.subjectId === subjectId,
       ),
+    );
+  }
+
+  findStudentAttendanceByRut(
+    studentRut: string,
+  ): Promise<StudentSubjectAttendance[]> {
+    const enrolled = this.enrollments.filter((e) => e.studentRut === studentRut);
+
+    return Promise.resolve(
+      enrolled.map((e) => {
+        const subjectClasses = this.classes.filter(
+          (c) => c.subjectId === e.subjectId,
+        );
+        const attendedClasses = this.assistances.filter(
+          (a) =>
+            a.studentRut === studentRut &&
+            a.subjectId === e.subjectId &&
+            a.present,
+        ).length;
+
+        return {
+          subjectName: e.subjectId,
+          attendedClasses,
+          totalClasses: subjectClasses.length,
+        };
+      }),
     );
   }
 
