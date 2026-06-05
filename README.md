@@ -22,6 +22,17 @@ npm run build
 npm run test
 ```
 
+## Test
+```bash
+
+Integracion 
+npm run test:integration
+
+BDD
+npm run test:bdd
+```
+
+
 ## Escenarios 
 
 1. CU-01 BDD Pasar a Nest / Pruebas de Humo / Ian
