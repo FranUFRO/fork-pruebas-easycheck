@@ -8,9 +8,7 @@ interface StudentSubjectAttendance {
 }
 
 interface Cu03AssistanceService {
-  getStudentAttendanceByRut(
-    rut: string,
-  ): Promise<StudentSubjectAttendance[]>;
+  getStudentAttendanceByRut(rut: string): Promise<StudentSubjectAttendance[]>;
 }
 
 describe('CU-03 Mostrar asistencia por estudiantes (TDD)', () => {
@@ -26,8 +24,7 @@ describe('CU-03 Mostrar asistencia por estudiantes (TDD)', () => {
       findStudentAttendanceByRut: jest.fn(),
     };
 
-    service = new AssistanceService(repository as never) as AssistanceService &
-      Cu03AssistanceService;
+    service = new AssistanceService(repository as never);
   });
 
   it('TC-CU03-01: rechaza la consulta cuando el RUT ingresado no es valido', async () => {

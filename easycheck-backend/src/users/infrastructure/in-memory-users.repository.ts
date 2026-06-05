@@ -6,22 +6,22 @@ import { UsersRepositoryPort } from '../application/user-registration.ports';
 export class InMemoryUsersRepository implements UsersRepositoryPort {
   private users = new Map<string, User>();
 
-  async existsByRut(rut: string): Promise<boolean> {
-    return this.users.has(rut);
+  existsByRut(rut: string): Promise<boolean> {
+    return Promise.resolve(this.users.has(rut));
   }
 
-  async save(user: Omit<User, 'id' | 'createdAt'>): Promise<User> {
+  save(user: Omit<User, 'id' | 'createdAt'>): Promise<User> {
     const created: User = {
       id: `usr-${this.users.size + 1}`,
       ...user,
       createdAt: new Date(),
     };
     this.users.set(created.rut, created);
-    return created;
+    return Promise.resolve(created);
   }
 
-  async findByRut(rut: string): Promise<User | null> {
-    return this.users.get(rut) ?? null;
+  findByRut(rut: string): Promise<User | null> {
+    return Promise.resolve(this.users.get(rut) ?? null);
   }
 
   reset(): void {

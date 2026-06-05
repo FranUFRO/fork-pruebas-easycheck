@@ -81,7 +81,9 @@ export class DataRepository {
   findStudentAttendanceByRut(
     studentRut: string,
   ): Promise<StudentSubjectAttendance[]> {
-    const enrolled = this.enrollments.filter((e) => e.studentRut === studentRut);
+    const enrolled = this.enrollments.filter(
+      (e) => e.studentRut === studentRut,
+    );
 
     return Promise.resolve(
       enrolled.map((e) => {

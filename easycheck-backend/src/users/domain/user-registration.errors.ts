@@ -7,7 +7,9 @@ export class InvalidInstitutionalCredentialsError extends Error {
 
 export class InstitutionalUserNotFoundError extends Error {
   constructor(public readonly rut: string) {
-    super(`El usuario con RUT ${rut} no pertenece a la Universidad de La Frontera`);
+    super(
+      `El usuario con RUT ${rut} no pertenece a la Universidad de La Frontera`,
+    );
     this.name = 'InstitutionalUserNotFoundError';
   }
 }

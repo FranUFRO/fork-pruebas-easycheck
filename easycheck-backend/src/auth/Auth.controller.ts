@@ -8,7 +8,8 @@ import {
   ForbiddenException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AuthService, LoginDto } from './Auth.service';
+import { AuthService } from './Auth.service';
+import type { LoginDto } from './Auth.service';
 import {
   EmptyCredentialsException,
   InvalidRutFormatException,

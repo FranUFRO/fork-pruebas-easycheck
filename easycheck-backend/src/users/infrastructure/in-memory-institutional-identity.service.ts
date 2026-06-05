@@ -11,9 +11,7 @@ interface InstitutionalUserRecord extends InstitutionalUser {
 }
 
 @Injectable()
-export class InMemoryInstitutionalIdentityService
-  implements InstitutionalIdentityPort
-{
+export class InMemoryInstitutionalIdentityService implements InstitutionalIdentityPort {
   private users = new Map<string, InstitutionalUserRecord>();
 
   constructor() {
@@ -34,7 +32,7 @@ export class InMemoryInstitutionalIdentityService
     this.users.clear();
   }
 
-  async validateInstitutionalUser(
+  validateInstitutionalUser(
     params: ValidateInstitutionalUserParams,
   ): Promise<InstitutionalUser | null> {
     const user = this.users.get(params.rut);
@@ -43,14 +41,14 @@ export class InMemoryInstitutionalIdentityService
       user.institutionalEmail !== params.institutionalEmail ||
       user.password !== params.institutionalPassword
     ) {
-      return null;
+      return Promise.resolve(null);
     }
 
-    return {
+    return Promise.resolve({
       rut: user.rut,
       institutionalEmail: user.institutionalEmail,
       fullName: user.fullName,
       role: user.role,
-    };
+    });
   }
 }

@@ -8,7 +8,8 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
-import { SubjectService, CreateSubjectDto } from './Subject.service';
+import { SubjectService } from './Subject.service';
+import type { CreateSubjectDto } from './Subject.service';
 import { Subject } from './Subject.repository';
 import { AdminGuard } from './Admin.guard';
 import {

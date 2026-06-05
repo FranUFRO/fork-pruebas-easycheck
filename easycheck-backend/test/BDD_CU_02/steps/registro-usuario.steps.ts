@@ -1,5 +1,5 @@
 import { TestingModule, Test } from '@nestjs/testing';
-import { defineFeature, loadFeature } from 'jest-cucumber';
+import { defineFeature, loadFeature, DefineStepFunction } from 'jest-cucumber';
 import { RegisterUserDto } from '../../../src/users/application/register-user.dto';
 import { RegisterUserService } from '../../../src/users/application/register-user.service';
 import { User } from '../../../src/users/domain/user.entity';
@@ -73,38 +73,44 @@ defineFeature(feature, (test) => {
     });
   };
 
-  const givenInstitutionalSystemAvailable = (given: any) => {
+  const givenInstitutionalSystemAvailable = (given: DefineStepFunction) => {
     given('el sistema institucional UFRO se encuentra disponible', () => {
       expect(institutionalIdentity).toBeDefined();
     });
   };
 
-  const givenInstitutionalUserExists = (given: any) => {
-    given(/^existe el usuario institucional con RUT "([^"]*)"$/, (rut) => {
-      seedInstitutionalUser(rut);
-    });
+  const givenInstitutionalUserExists = (given: DefineStepFunction) => {
+    given(
+      /^existe el usuario institucional con RUT "([^"]*)"$/,
+      (rut: string) => {
+        seedInstitutionalUser(rut);
+      },
+    );
   };
 
-  const givenInstitutionalUserDoesNotExist = (given: any) => {
-    given(/^no existe el usuario institucional con RUT "([^"]*)"$/, (rut) => {
-      institutionalIdentity.reset();
-      command = buildCommand(rut, 'validas');
-    });
+  const givenInstitutionalUserDoesNotExist = (given: DefineStepFunction) => {
+    given(
+      /^no existe el usuario institucional con RUT "([^"]*)"$/,
+      (rut: string) => {
+        institutionalIdentity.reset();
+        command = buildCommand(rut, 'validas');
+      },
+    );
   };
 
-  const givenEasyCheckUserIsNotRegistered = (given: any) => {
+  const givenEasyCheckUserIsNotRegistered = (given: DefineStepFunction) => {
     given(
       /^el usuario con RUT "([^"]*)" no esta registrado en EasyCheck$/,
-      async (rut) => {
+      async (rut: string) => {
         expect(await usersRepository.existsByRut(rut)).toBe(false);
       },
     );
   };
 
-  const givenEasyCheckUserAlreadyRegistered = (given: any) => {
+  const givenEasyCheckUserAlreadyRegistered = (given: DefineStepFunction) => {
     given(
       /^el usuario con RUT "([^"]*)" ya esta registrado en EasyCheck$/,
-      async (rut) => {
+      async (rut: string) => {
         await usersRepository.save({
           rut,
           institutionalEmail: 'ana.garcia@ufromail.cl',
@@ -115,10 +121,10 @@ defineFeature(feature, (test) => {
     );
   };
 
-  const whenAdministrativeRegistersUser = (when: any) => {
+  const whenAdministrativeRegistersUser = (when: DefineStepFunction) => {
     when(
       /^el administrativo registra al usuario con RUT "([^"]*)" y credenciales (validas|invalidas)$/,
-      async (rut, credentialMode: 'validas' | 'invalidas') => {
+      async (rut: string, credentialMode: 'validas' | 'invalidas') => {
         command = buildCommand(rut, credentialMode);
         try {
           result = await registerUserService.execute(command);
@@ -129,10 +135,12 @@ defineFeature(feature, (test) => {
     );
   };
 
-  const whenAdministrativeRegistersUserWithRole = (when: any) => {
+  const whenAdministrativeRegistersUserWithRole = (
+    when: DefineStepFunction,
+  ) => {
     when(
       /^el administrativo registra al usuario con RUT "([^"]*)" y rol "([^"]*)"$/,
-      async (rut, role) => {
+      async (rut: string, role: string) => {
         command = buildCommand(rut, 'validas', role);
         try {
           result = await registerUserService.execute(command);
@@ -143,33 +151,39 @@ defineFeature(feature, (test) => {
     );
   };
 
-  const thenAccountIsCreated = (then: any) => {
-    then(/^el sistema registra la cuenta con rol "([^"]*)"$/, async (role) => {
-      expect(capturedError).toBeNull();
-      expect(result).toMatchObject({
-        rut: command.rut,
-        role,
-        institutionalEmail: command.institutionalEmail,
-      });
-      expect(await usersRepository.existsByRut(command.rut)).toBe(true);
-    });
+  const thenAccountIsCreated = (then: DefineStepFunction) => {
+    then(
+      /^el sistema registra la cuenta con rol "([^"]*)"$/,
+      async (role: string) => {
+        expect(capturedError).toBeNull();
+        expect(result).toMatchObject({
+          rut: command.rut,
+          role,
+          institutionalEmail: command.institutionalEmail,
+        });
+        expect(await usersRepository.existsByRut(command.rut)).toBe(true);
+      },
+    );
   };
 
-  const thenDuplicatedUserIsReported = (then: any) => {
+  const thenDuplicatedUserIsReported = (then: DefineStepFunction) => {
     then('el sistema informa que el usuario ya se encuentra registrado', () => {
       expect(result).toBeNull();
       expect(capturedError).toBeInstanceOf(UserAlreadyRegisteredError);
     });
   };
 
-  const thenUniversityMembershipIsReported = (then: any) => {
-    then('el sistema informa que el usuario no pertenece a la universidad', () => {
-      expect(result).toBeNull();
-      expect(capturedError).toBeInstanceOf(InstitutionalUserNotFoundError);
-    });
+  const thenUniversityMembershipIsReported = (then: DefineStepFunction) => {
+    then(
+      'el sistema informa que el usuario no pertenece a la universidad',
+      () => {
+        expect(result).toBeNull();
+        expect(capturedError).toBeInstanceOf(InstitutionalUserNotFoundError);
+      },
+    );
   };
 
-  const thenInvalidCredentialsAreReported = (then: any) => {
+  const thenInvalidCredentialsAreReported = (then: DefineStepFunction) => {
     then(
       'el sistema informa que las credenciales institucionales son invalidas',
       () => {
@@ -181,21 +195,21 @@ defineFeature(feature, (test) => {
     );
   };
 
-  const thenRoleNotAllowedIsReported = (then: any) => {
+  const thenRoleNotAllowedIsReported = (then: DefineStepFunction) => {
     then('el sistema informa que el rol no es permitido para registro', () => {
       expect(result).toBeNull();
       expect(capturedError).toBeInstanceOf(RoleNotAllowedError);
     });
   };
 
-  const thenInvalidRutFormatIsReported = (then: any) => {
+  const thenInvalidRutFormatIsReported = (then: DefineStepFunction) => {
     then('el sistema informa que el formato del RUT es invalido', () => {
       expect(result).toBeNull();
       expect(capturedError).toBeInstanceOf(InvalidRutFormatError);
     });
   };
 
-  const thenRutRequiredIsReported = (then: any) => {
+  const thenRutRequiredIsReported = (then: DefineStepFunction) => {
     then('el sistema informa que el RUT no puede estar vacio', () => {
       expect(result).toBeNull();
       expect(capturedError).toBeInstanceOf(RutRequiredError);
@@ -208,10 +222,10 @@ defineFeature(feature, (test) => {
     when,
     then,
   }: {
-    given: any;
-    and: any;
-    when: any;
-    then: any;
+    given: DefineStepFunction;
+    and: DefineStepFunction;
+    when: DefineStepFunction;
+    then: DefineStepFunction;
   }) => {
     givenInstitutionalSystemAvailable(given);
     givenInstitutionalUserExists(given);
@@ -226,10 +240,10 @@ defineFeature(feature, (test) => {
     when,
     then,
   }: {
-    given: any;
-    and: any;
-    when: any;
-    then: any;
+    given: DefineStepFunction;
+    and: DefineStepFunction;
+    when: DefineStepFunction;
+    then: DefineStepFunction;
   }) => {
     givenInstitutionalSystemAvailable(given);
     givenInstitutionalUserExists(given);
@@ -243,9 +257,9 @@ defineFeature(feature, (test) => {
     when,
     then,
   }: {
-    given: any;
-    when: any;
-    then: any;
+    given: DefineStepFunction;
+    when: DefineStepFunction;
+    then: DefineStepFunction;
   }) => {
     givenInstitutionalSystemAvailable(given);
     givenInstitutionalUserDoesNotExist(given);
@@ -258,9 +272,9 @@ defineFeature(feature, (test) => {
     when,
     then,
   }: {
-    given: any;
-    when: any;
-    then: any;
+    given: DefineStepFunction;
+    when: DefineStepFunction;
+    then: DefineStepFunction;
   }) => {
     givenInstitutionalSystemAvailable(given);
     givenInstitutionalUserExists(given);
@@ -273,9 +287,9 @@ defineFeature(feature, (test) => {
     when,
     then,
   }: {
-    given: any;
-    when: any;
-    then: any;
+    given: DefineStepFunction;
+    when: DefineStepFunction;
+    then: DefineStepFunction;
   }) => {
     givenInstitutionalSystemAvailable(given);
     givenInstitutionalUserExists(given);
@@ -288,9 +302,9 @@ defineFeature(feature, (test) => {
     when,
     then,
   }: {
-    given: any;
-    when: any;
-    then: any;
+    given: DefineStepFunction;
+    when: DefineStepFunction;
+    then: DefineStepFunction;
   }) => {
     givenInstitutionalSystemAvailable(given);
     whenAdministrativeRegistersUser(when);
@@ -302,9 +316,9 @@ defineFeature(feature, (test) => {
     when,
     then,
   }: {
-    given: any;
-    when: any;
-    then: any;
+    given: DefineStepFunction;
+    when: DefineStepFunction;
+    then: DefineStepFunction;
   }) => {
     givenInstitutionalSystemAvailable(given);
     whenAdministrativeRegistersUser(when);
