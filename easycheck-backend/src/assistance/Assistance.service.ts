@@ -71,8 +71,8 @@ export class AssistanceService {
   }
 
   private isValidRut(rut: string): boolean {
-    const cleanRut = rut.replace(/\./g, '').toUpperCase();
-    const match = cleanRut.match(/^(\d{7,8})-([\dK])$/);
+    const cleanRut = rut.replaceAll('.', '').toUpperCase();
+    const match = /^(\d{7,8})-([\dK])$/.exec(cleanRut);
 
     if (!match) {
       return false;
@@ -88,12 +88,8 @@ export class AssistanceService {
     }
 
     const expectedValue = 11 - (sum % 11);
-    const expectedVerifier =
-      expectedValue === 11
-        ? '0'
-        : expectedValue === 10
-          ? 'K'
-          : `${expectedValue}`;
+    const verifierIfNotEleven = expectedValue === 10 ? 'K' : `${expectedValue}`;
+    const expectedVerifier = expectedValue === 11 ? '0' : verifierIfNotEleven;
 
     return verifier === expectedVerifier;
   }
