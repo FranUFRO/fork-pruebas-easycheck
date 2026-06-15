@@ -78,8 +78,12 @@ npm run test:cov
 ```
 4. Correr el scanner con su propio token
 
+La configuración vive en `easycheck-backend/sonar-project.properties` (sources,
+tests y la ruta del lcov combinado). Por eso el scanner se ejecuta **desde
+`easycheck-backend/`** y sólo hace falta pasarle el host y el token:
+
 ```bash
-cd ~/ruta/del/proyecto/Easycheck-backend
+cd ~/ruta/del/proyecto/Easycheck-backend/easycheck-backend
 
 docker run \
   --rm \
@@ -87,10 +91,6 @@ docker run \
   -v "$(pwd):/usr/src" \
   -w /usr/src \
   sonarsource/sonar-scanner-cli \
-  -Dsonar.projectKey=easycheck-backend \
-  -Dsonar.sources=easycheck-backend/src \
-  -Dsonar.tests=easycheck-backend/test \
-  -Dsonar.javascript.lcov.reportPaths=easycheck-backend/coverage/lcov.info \
   -Dsonar.host.url=http://sonarqube:9000 \
   -Dsonar.token=TOKEN_DE
 ```
@@ -99,7 +99,7 @@ docker run \
 
 1. Comando docker compose up -d
 2. Cobertura npm run test:cov
-3. Ejecutar.
+3. Ejecutar (desde `easycheck-backend/`, usa el `sonar-project.properties`).
 
 ```bash
 docker run \
@@ -108,10 +108,6 @@ docker run \
   -v "$(pwd):/usr/src" \
   -w /usr/src \
   sonarsource/sonar-scanner-cli \
-  -Dsonar.projectKey=easycheck-backend \
-  -Dsonar.sources=easycheck-backend/src \
-  -Dsonar.tests=easycheck-backend/test \
-  -Dsonar.javascript.lcov.reportPaths=easycheck-backend/coverage/lcov.info \
   -Dsonar.host.url=http://sonarqube:9000 \
   -Dsonar.token=TOKEN_DE
   ```
