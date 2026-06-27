@@ -109,5 +109,5 @@ docker run \
   -w /usr/src \
   sonarsource/sonar-scanner-cli \
   -Dsonar.host.url=http://sonarqube:9000 \
-  -Dsonar.token=TOKEN_DE
+  -Dsonar.token=sqp_508efdee148448400f630e9f737e2b95581e3d59 
   ```
