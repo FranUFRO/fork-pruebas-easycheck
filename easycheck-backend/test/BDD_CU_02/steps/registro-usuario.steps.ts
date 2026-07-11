@@ -18,6 +18,14 @@ import { UsersModule } from '../../../src/users/users.module';
 
 const feature = loadFeature('test/BDD_CU_02/features/registro-usuario.feature');
 
+// Un usuario pertenece a la UFRO si su correo termina en @ufromail.cl y su
+// parte local tiene exactamente 2 digitos (ver InMemoryInstitutionalIdentityService).
+const VALID_INSTITUTIONAL_EMAIL = 'ana.garcia22@ufromail.cl';
+// Correo @ufromail.cl pero sin los 2 digitos requeridos: no pertenece a la UFRO.
+const INSTITUTIONAL_EMAIL_WITHOUT_NUMERIC_ID = 'ana.garcia@ufromail.cl';
+// Correo que no es institucional: credenciales invalidas.
+const NON_INSTITUTIONAL_EMAIL = 'ana.garcia@gmail.com';
+
 defineFeature(feature, (test) => {
   let moduleRef: TestingModule;
   let registerUserService: RegisterUserService;
@@ -35,7 +43,6 @@ defineFeature(feature, (test) => {
     registerUserService = moduleRef.get(RegisterUserService);
     institutionalIdentity = moduleRef.get(InMemoryInstitutionalIdentityService);
     usersRepository = moduleRef.get(InMemoryUsersRepository);
-    institutionalIdentity.reset();
     usersRepository.reset();
     result = null;
     capturedError = null;
@@ -53,8 +60,8 @@ defineFeature(feature, (test) => {
     rut,
     institutionalEmail:
       credentialMode === 'validas'
-        ? 'ana.garcia@ufromail.cl'
-        : 'ana.garcia@gmail.com',
+        ? VALID_INSTITUTIONAL_EMAIL
+        : NON_INSTITUTIONAL_EMAIL,
     institutionalPassword:
       credentialMode === 'validas'
         ? 'ClaveInstitucional123'
@@ -63,39 +70,19 @@ defineFeature(feature, (test) => {
     role: role as UserRole,
   });
 
-  const seedInstitutionalUser = (rut: string) => {
-    institutionalIdentity.seed({
-      rut,
-      institutionalEmail: 'ana.garcia@ufromail.cl',
-      fullName: 'Ana Garcia',
-      role: UserRole.ESTUDIANTE,
-      password: 'ClaveInstitucional123',
-    });
+  const registerWithCommand = async (dto: RegisterUserDto) => {
+    command = dto;
+    try {
+      result = await registerUserService.execute(command);
+    } catch (error) {
+      capturedError = error;
+    }
   };
 
   const givenInstitutionalSystemAvailable = (given: DefineStepFunction) => {
     given('el sistema institucional UFRO se encuentra disponible', () => {
       expect(institutionalIdentity).toBeDefined();
     });
-  };
-
-  const givenInstitutionalUserExists = (given: DefineStepFunction) => {
-    given(
-      /^existe el usuario institucional con RUT "([^"]*)"$/,
-      (rut: string) => {
-        seedInstitutionalUser(rut);
-      },
-    );
-  };
-
-  const givenInstitutionalUserDoesNotExist = (given: DefineStepFunction) => {
-    given(
-      /^no existe el usuario institucional con RUT "([^"]*)"$/,
-      (rut: string) => {
-        institutionalIdentity.reset();
-        command = buildCommand(rut, 'validas');
-      },
-    );
   };
 
   const givenEasyCheckUserIsNotRegistered = (given: DefineStepFunction) => {
@@ -113,7 +100,7 @@ defineFeature(feature, (test) => {
       async (rut: string) => {
         await usersRepository.save({
           rut,
-          institutionalEmail: 'ana.garcia@ufromail.cl',
+          institutionalEmail: VALID_INSTITUTIONAL_EMAIL,
           fullName: 'Ana Garcia',
           role: UserRole.ESTUDIANTE,
         });
@@ -125,12 +112,24 @@ defineFeature(feature, (test) => {
     when(
       /^el administrativo registra al usuario con RUT "([^"]*)" y credenciales (validas|invalidas)$/,
       async (rut: string, credentialMode: 'validas' | 'invalidas') => {
-        command = buildCommand(rut, credentialMode);
-        try {
-          result = await registerUserService.execute(command);
-        } catch (error) {
-          capturedError = error;
-        }
+        await registerWithCommand(buildCommand(rut, credentialMode));
+      },
+    );
+  };
+
+  const whenAdministrativeRegistersUserWithoutNumericId = (
+    when: DefineStepFunction,
+  ) => {
+    when(
+      /^el administrativo registra al usuario con RUT "([^"]*)" y un correo institucional sin identificador numerico$/,
+      async (rut: string) => {
+        await registerWithCommand({
+          rut,
+          institutionalEmail: INSTITUTIONAL_EMAIL_WITHOUT_NUMERIC_ID,
+          institutionalPassword: 'ClaveInstitucional123',
+          fullName: 'Ana Garcia',
+          role: UserRole.ESTUDIANTE,
+        });
       },
     );
   };
@@ -141,12 +140,7 @@ defineFeature(feature, (test) => {
     when(
       /^el administrativo registra al usuario con RUT "([^"]*)" y rol "([^"]*)"$/,
       async (rut: string, role: string) => {
-        command = buildCommand(rut, 'validas', role);
-        try {
-          result = await registerUserService.execute(command);
-        } catch (error) {
-          capturedError = error;
-        }
+        await registerWithCommand(buildCommand(rut, 'validas', role));
       },
     );
   };
@@ -218,36 +212,30 @@ defineFeature(feature, (test) => {
 
   const bindSuccessfulRegistration = ({
     given,
-    and,
     when,
     then,
   }: {
     given: DefineStepFunction;
-    and: DefineStepFunction;
     when: DefineStepFunction;
     then: DefineStepFunction;
   }) => {
     givenInstitutionalSystemAvailable(given);
-    givenInstitutionalUserExists(given);
-    givenEasyCheckUserIsNotRegistered(and);
+    givenEasyCheckUserIsNotRegistered(given);
     whenAdministrativeRegistersUser(when);
     thenAccountIsCreated(then);
   };
 
   const bindDuplicatedUser = ({
     given,
-    and,
     when,
     then,
   }: {
     given: DefineStepFunction;
-    and: DefineStepFunction;
     when: DefineStepFunction;
     then: DefineStepFunction;
   }) => {
     givenInstitutionalSystemAvailable(given);
-    givenInstitutionalUserExists(given);
-    givenEasyCheckUserAlreadyRegistered(and);
+    givenEasyCheckUserAlreadyRegistered(given);
     whenAdministrativeRegistersUser(when);
     thenDuplicatedUserIsReported(then);
   };
@@ -262,8 +250,7 @@ defineFeature(feature, (test) => {
     then: DefineStepFunction;
   }) => {
     givenInstitutionalSystemAvailable(given);
-    givenInstitutionalUserDoesNotExist(given);
-    whenAdministrativeRegistersUser(when);
+    whenAdministrativeRegistersUserWithoutNumericId(when);
     thenUniversityMembershipIsReported(then);
   };
 
@@ -277,7 +264,6 @@ defineFeature(feature, (test) => {
     then: DefineStepFunction;
   }) => {
     givenInstitutionalSystemAvailable(given);
-    givenInstitutionalUserExists(given);
     whenAdministrativeRegistersUser(when);
     thenInvalidCredentialsAreReported(then);
   };
@@ -292,7 +278,6 @@ defineFeature(feature, (test) => {
     then: DefineStepFunction;
   }) => {
     givenInstitutionalSystemAvailable(given);
-    givenInstitutionalUserExists(given);
     whenAdministrativeRegistersUserWithRole(when);
     thenRoleNotAllowedIsReported(then);
   };
@@ -327,7 +312,7 @@ defineFeature(feature, (test) => {
 
   test('Registro exitoso', bindSuccessfulRegistration);
   test('Usuario duplicado', bindDuplicatedUser);
-  test('Usuario inexistente', bindNonexistentUser);
+  test('Usuario que no pertenece a la universidad', bindNonexistentUser);
   test('Credenciales invalidas', bindInvalidCredentials);
   test('Registro con rol no permitido', bindRoleNotAllowed);
   test('Registro con formato de RUT invalido', bindInvalidRutFormat);

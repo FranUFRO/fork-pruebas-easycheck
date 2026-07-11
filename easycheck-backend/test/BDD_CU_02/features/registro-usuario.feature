@@ -8,33 +8,28 @@ Feature: CU-02 Desplegar formulario de registro de nuevo usuario
 
   @positive
   Scenario: Registro exitoso
-    Given existe el usuario institucional con RUT "12345678-9"
-    And el usuario con RUT "12345678-9" no esta registrado en EasyCheck
+    Given el usuario con RUT "12345678-9" no esta registrado en EasyCheck
     When el administrativo registra al usuario con RUT "12345678-9" y credenciales validas
     Then el sistema registra la cuenta con rol "ESTUDIANTE"
 
   @negative
   Scenario: Usuario duplicado
-    Given existe el usuario institucional con RUT "12345678-9"
-    And el usuario con RUT "12345678-9" ya esta registrado en EasyCheck
+    Given el usuario con RUT "12345678-9" ya esta registrado en EasyCheck
     When el administrativo registra al usuario con RUT "12345678-9" y credenciales validas
     Then el sistema informa que el usuario ya se encuentra registrado
-  
+
   @negative
-  Scenario: Usuario inexistente
-    Given no existe el usuario institucional con RUT "11111111-1"
-    When el administrativo registra al usuario con RUT "11111111-1" y credenciales validas
+  Scenario: Usuario que no pertenece a la universidad
+    When el administrativo registra al usuario con RUT "11111111-1" y un correo institucional sin identificador numerico
     Then el sistema informa que el usuario no pertenece a la universidad
 
   @negative
   Scenario: Credenciales invalidas
-    Given existe el usuario institucional con RUT "12345678-9"
     When el administrativo registra al usuario con RUT "12345678-9" y credenciales invalidas
     Then el sistema informa que las credenciales institucionales son invalidas
 
   @negative
   Scenario: Registro con rol no permitido
-    Given existe el usuario institucional con RUT "12345678-9"
     When el administrativo registra al usuario con RUT "12345678-9" y rol "ADMINISTRADOR"
     Then el sistema informa que el rol no es permitido para registro
 
@@ -42,7 +37,7 @@ Feature: CU-02 Desplegar formulario de registro de nuevo usuario
   Scenario: Registro con formato de RUT invalido
     When el administrativo registra al usuario con RUT "1234-5678" y credenciales validas
     Then el sistema informa que el formato del RUT es invalido
-  
+
   @boundary
   Scenario: Registro con campos vacios
     When el administrativo registra al usuario con RUT "" y credenciales validas
