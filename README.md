@@ -1,9 +1,25 @@
 # Easycheck-backend
 Backend para easycheck creado con Nest
 
+## Arranque con Docker (Postgres + backend + seed)
+
+```bash
+docker compose up --build
+```
+
+Levanta Postgres 16, construye el backend y siembra datos de demo
+automáticamente. API en `http://localhost:3000` (Swagger en `/api/docs`).
+Las credenciales de la base se configuran con las variables de entorno
+`POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` (los valores por defecto
+del compose son solo para desarrollo). Para regenerar el esquema tras un
+cambio de modelo: `docker compose down -v && docker compose up --build`.
+
+## Arranque local sin Docker (modo in-memory)
+
 ### 1. Instalar dependencias
 
 ```bash
+cd easycheck-backend
 npm install
 ```
 
@@ -12,6 +28,9 @@ npm install
 ```bash
 npm run start:dev
 ```
+
+Sin la variable `DB_HOST`, el backend corre con repositorios en memoria (el
+mismo modo que usan las pruebas, que no requieren Docker ni Postgres).
 
 ## Scripts
 

@@ -22,7 +22,9 @@ export class AuthRepository {
     this.users.push({ rut, role, status });
   }
 
-  findByRut(rut: string): AuthUser | undefined {
-    return this.users.find((u) => u.rut === rut);
+  // Promise-returning (convención de los adapters in-memory) para que la
+  // firma coincida con TypeOrmAuthRepository y AuthService pueda hacer await.
+  findByRut(rut: string): Promise<AuthUser | undefined> {
+    return Promise.resolve(this.users.find((u) => u.rut === rut));
   }
 }

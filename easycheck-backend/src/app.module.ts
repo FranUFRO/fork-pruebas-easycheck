@@ -1,13 +1,22 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { DatabaseModule } from './database/database.module';
 import { AssistanceModule } from './assistance/Assistance.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/Auth.module';
 import { SubjectModule } from './subject/Subject.module';
 
+// DatabaseModule solo abre conexión a Postgres si DB_HOST está definido
+// (modo Docker); sin la variable el backend corre 100 % in-memory.
 @Module({
-  imports: [AssistanceModule, UsersModule, AuthModule, SubjectModule],
+  imports: [
+    DatabaseModule,
+    AssistanceModule,
+    UsersModule,
+    AuthModule,
+    SubjectModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

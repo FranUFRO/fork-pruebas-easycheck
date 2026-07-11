@@ -24,14 +24,15 @@ const RUT_WITH_CHECK_DIGIT = /^\d{7,8}-[\dkK]$/;
 export class AuthService {
   constructor(private readonly authRepository: AuthRepository) {}
 
-  login(dto: LoginDto): LoginResult {
+  // async: el repositorio (in-memory o TypeORM) devuelve Promise.
+  async login(dto: LoginDto): Promise<LoginResult> {
     const rut = dto?.rut ?? '';
     const password = dto?.password ?? '';
 
     this.assertCredentialsPresent(rut, password);
     this.assertValidRutFormat(rut);
 
-    const user = this.authRepository.findByRut(rut);
+    const user = await this.authRepository.findByRut(rut);
     if (!user) {
       throw new InvalidCredentialsException();
     }

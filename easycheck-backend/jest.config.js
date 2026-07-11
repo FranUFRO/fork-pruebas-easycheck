@@ -36,6 +36,10 @@ module.exports = {
     '!src/**/*.spec.ts', // los archivos de prueba no son código fuente a cubrir
     '!src/**/*.module.ts', // wiring de NestJS, no es lógica de negocio testeable
     '!src/main.ts', // bootstrap de la aplicación
+    '!src/seed/**', // script de seed: bootstrap de datos, igual que main.ts
+    '!src/database/**', // entities/config TypeORM: esquema declarativo, sin lógica
+    '!src/**/*.typeorm.repository.ts', // adapters Postgres: solo ejercitables
+    '!src/**/typeorm-*.ts', //   contra una DB real; los tests usan in-memory
   ],
   coverageDirectory: '<rootDir>/coverage',
   coverageReporters: ['lcov', 'clover', 'json', 'text-summary'],

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { IsInt, IsString } from 'class-validator';
 import {
   DataRepository,
   StudentAssistance,
@@ -27,10 +28,20 @@ export interface StudentAssistanceDto {
   assistancePercentage: number;
 }
 
+// Con decoradores de class-validator: el ValidationPipe global de main.ts usa
+// whitelist+forbidNonWhitelisted, y sin decoradores rechazaba TODO el body en
+// el bootstrap real (los tests de integración no aplican el pipe global).
 export class RegisterAssistanceDto {
+  @IsString()
   studentRut!: string;
+
+  @IsInt()
   classId!: number;
+
+  @IsString()
   subjectId!: string;
+
+  @IsString()
   qrSignature!: string;
 }
 
