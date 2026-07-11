@@ -15,6 +15,12 @@
  *   IT-4  Verify assistance via QR     — registration disabled (409)
  *   IT-5  Show subject assistance      — success flow (professor)
  *   IT-6  Show subject assistance      — professor without subject (404)
+ *   IT-7  Attendance by RUT (CU-03)    — success (200), invalid rut (400),
+ *                                        student not found (404), role (403)
+ *   IT-8  Disable registration (CU-07) — success (200), no permission (404),
+ *                                        already disabled (409)
+ *   IT-9  Enable registration (CU-08)  — success (200), already enabled (409)
+ *   IT-10 Edit assistance (CU-08)      — success (200), record not found (404)
  * ============================================================
  */
 
@@ -70,6 +76,22 @@ function buildApp(): Promise<{
     .compile()
     .then(async (moduleRef: TestingModule) => {
       const app = moduleRef.createNestApplication<INestApplication<App>>();
+      // Simulates the auth middleware that in production would populate
+      // req.user; the role comes from the 'x-user-role' test header so the
+      // guards (e.g. DirectorOrAdminGuard) can be exercised end-to-end.
+      app.use(
+        (
+          req: { headers: Record<string, unknown>; user?: { role: string } },
+          _res: unknown,
+          next: () => void,
+        ) => {
+          const role = req.headers['x-user-role'];
+          if (typeof role === 'string') {
+            req.user = { role };
+          }
+          next();
+        },
+      );
       await app.init();
       const repo = moduleRef.get<DataRepository>(DataRepository);
       return { app, repo };
@@ -361,6 +383,286 @@ describe('EasyCheck — Integration Tests (Bottom-Up)', () => {
         professorRut: '11111111-1',
         subjectCode: 'INF-999',
       });
+    });
+  });
+
+  // ===========================================================================
+  // IT-7 — CU-03: Attendance by RUT (director/admin)
+  // Integration: DirectorOrAdminGuard ↔ AssistanceController ↔ Service ↔ Repo
+  // ===========================================================================
+  describe('IT-7 — Attendance by RUT (CU-03)', () => {
+    /**
+     * Precondition:
+     *  - Student 12345678-5 (valid mod-11 RUT) enrolled in ASG-01
+     *  - 2 classes for ASG-01, 1 attended
+     * Input: GET /api/v1/students/12345678-5/attendance (role: director)
+     */
+    it('should return HTTP 200 with attendance per enrolled subject', async () => {
+      // ── Fixture ──
+      repo.seedStudent('12345678-5', 'Ana García');
+      repo.seedEnrollment('12345678-5', 'ASG-01');
+      repo.seedClass({
+        id: 1,
+        subjectId: 'ASG-01',
+        date: new Date(),
+        registrationStatus: 'ENABLED',
+      });
+      repo.seedClass({
+        id: 2,
+        subjectId: 'ASG-01',
+        date: new Date(),
+        registrationStatus: 'ENABLED',
+      });
+      repo.seedAssistance({
+        id: 1,
+        studentRut: '12345678-5',
+        classId: 1,
+        subjectId: 'ASG-01',
+        date: new Date(),
+        present: true,
+      });
+
+      // ── HTTP invocation ──
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/students/12345678-5/attendance')
+        .set('authorization', 'Bearer test-token')
+        .set('x-user-role', 'director');
+
+      // ── Asserts ──
+      expect(res.status).toBe(HttpStatus.OK);
+      expect(res.body).toEqual([
+        {
+          subjectName: 'ASG-01',
+          attendedClasses: 1,
+          totalClasses: 2,
+          attendancePercentage: 50,
+        },
+      ]);
+    });
+
+    it('should return HTTP 400 when the RUT is invalid', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/students/rut-invalido/attendance')
+        .set('authorization', 'Bearer test-token')
+        .set('x-user-role', 'administrador');
+      const body = res.body as ErrorResponse;
+
+      expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(body).toMatchObject({
+        error: 'El RUT ingresado no es válido. Ingrese el RUT nuevamente.',
+        rut: 'rut-invalido',
+      });
+    });
+
+    it('should return HTTP 404 when the student does not exist', async () => {
+      // 11111111-1 is a valid mod-11 RUT, but no student is seeded
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/students/11111111-1/attendance')
+        .set('authorization', 'Bearer test-token')
+        .set('x-user-role', 'director');
+      const body = res.body as ErrorResponse;
+
+      expect(res.status).toBe(HttpStatus.NOT_FOUND);
+      expect(body).toMatchObject({
+        error: 'Student not found',
+        rut: '11111111-1',
+      });
+    });
+
+    it('should return HTTP 403 for roles other than director/administrador', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/students/12345678-5/attendance')
+        .set('authorization', 'Bearer test-token')
+        .set('x-user-role', 'estudiante');
+
+      expect(res.status).toBe(HttpStatus.FORBIDDEN);
+    });
+  });
+
+  // ===========================================================================
+  // IT-8 — CU-07: Disable assistance registration (professor)
+  // Integration: AssistanceController ↔ AssistanceService ↔ DataRepository
+  // ===========================================================================
+  describe('IT-8 — Disable registration (CU-07)', () => {
+    /**
+     * Precondition:
+     *  - Class id=7 for ASG-01 with status=ENABLED
+     *  - Professor 11111111-1 teaches ASG-01
+     * Input: PATCH /api/v1/professors/11111111-1/classes/7/registration
+     *        { "status": "DISABLED" }
+     */
+    it('should return HTTP 200 and persist registrationStatus=DISABLED', async () => {
+      // ── Fixture ──
+      repo.seedClass({
+        id: 7,
+        subjectId: 'ASG-01',
+        date: new Date(),
+        registrationStatus: 'ENABLED',
+      });
+      repo.seedTeaching('11111111-1', 'ASG-01');
+
+      // ── HTTP invocation ──
+      const res = await request(app.getHttpServer())
+        .patch('/api/v1/professors/11111111-1/classes/7/registration')
+        .send({ status: 'DISABLED' });
+
+      // ── Asserts ──
+      expect(res.status).toBe(HttpStatus.OK);
+      expect(res.body).toEqual({
+        message: 'Registration disabled successfully',
+        classId: 7,
+        registrationStatus: 'DISABLED',
+      });
+
+      // ── Assert on DB state (side effect) ──
+      const inDb = await repo.findClass(7);
+      expect(inDb?.registrationStatus).toBe('DISABLED');
+    });
+
+    it('should return HTTP 404 when the professor does not teach the subject', async () => {
+      repo.seedClass({
+        id: 7,
+        subjectId: 'ASG-01',
+        date: new Date(),
+        registrationStatus: 'ENABLED',
+      });
+      // No teaching seeded for this professor
+
+      const res = await request(app.getHttpServer())
+        .patch('/api/v1/professors/22222222-2/classes/7/registration')
+        .send({ status: 'DISABLED' });
+      const body = res.body as ErrorResponse;
+
+      expect(res.status).toBe(HttpStatus.NOT_FOUND);
+      expect(body).toMatchObject({
+        professorRut: '22222222-2',
+        subjectCode: 'ASG-01',
+      });
+
+      // ── Assert DB was not modified ──
+      const inDb = await repo.findClass(7);
+      expect(inDb?.registrationStatus).toBe('ENABLED');
+    });
+
+    it('should return HTTP 409 when registration is already disabled', async () => {
+      repo.seedClass({
+        id: 7,
+        subjectId: 'ASG-01',
+        date: new Date(),
+        registrationStatus: 'DISABLED',
+      });
+      repo.seedTeaching('11111111-1', 'ASG-01');
+
+      const res = await request(app.getHttpServer())
+        .patch('/api/v1/professors/11111111-1/classes/7/registration')
+        .send({ status: 'DISABLED' });
+      const body = res.body as ErrorResponse;
+
+      expect(res.status).toBe(HttpStatus.CONFLICT);
+      expect(body).toMatchObject({ classId: 7 });
+    });
+  });
+
+  // ===========================================================================
+  // IT-9 — CU-08: Enable assistance registration (professor)
+  // Integration: AssistanceController ↔ AssistanceService ↔ DataRepository
+  // ===========================================================================
+  describe('IT-9 — Enable registration (CU-08)', () => {
+    it('should return HTTP 200 and persist registrationStatus=ENABLED', async () => {
+      repo.seedClass({
+        id: 8,
+        subjectId: 'ASG-01',
+        date: new Date(),
+        registrationStatus: 'DISABLED',
+      });
+      repo.seedTeaching('11111111-1', 'ASG-01');
+
+      const res = await request(app.getHttpServer())
+        .patch('/api/v1/professors/11111111-1/classes/8/registration')
+        .send({ status: 'ENABLED' });
+
+      expect(res.status).toBe(HttpStatus.OK);
+      expect(res.body).toEqual({
+        message: 'Registration enabled successfully',
+        classId: 8,
+        registrationStatus: 'ENABLED',
+      });
+
+      const inDb = await repo.findClass(8);
+      expect(inDb?.registrationStatus).toBe('ENABLED');
+    });
+
+    it('should return HTTP 409 when registration is already enabled', async () => {
+      repo.seedClass({
+        id: 8,
+        subjectId: 'ASG-01',
+        date: new Date(),
+        registrationStatus: 'ENABLED',
+      });
+      repo.seedTeaching('11111111-1', 'ASG-01');
+
+      const res = await request(app.getHttpServer())
+        .patch('/api/v1/professors/11111111-1/classes/8/registration')
+        .send({ status: 'ENABLED' });
+      const body = res.body as ErrorResponse;
+
+      expect(res.status).toBe(HttpStatus.CONFLICT);
+      expect(body).toMatchObject({ classId: 8 });
+    });
+  });
+
+  // ===========================================================================
+  // IT-10 — CU-08: Edit a student's assistance record (professor)
+  // Integration: AssistanceController ↔ AssistanceService ↔ DataRepository
+  // ===========================================================================
+  describe('IT-10 — Edit assistance record (CU-08)', () => {
+    /**
+     * Precondition:
+     *  - Assistance record id=10 (present=true) for ASG-01
+     *  - Professor 11111111-1 teaches ASG-01
+     * Input: PATCH /api/v1/professors/11111111-1/assistance/10
+     *        { "present": false }
+     */
+    it('should return HTTP 200 and persist the new presence value', async () => {
+      // ── Fixture ──
+      repo.seedAssistance({
+        id: 10,
+        studentRut: '12345678-5',
+        classId: 1,
+        subjectId: 'ASG-01',
+        date: new Date(),
+        present: true,
+      });
+      repo.seedTeaching('11111111-1', 'ASG-01');
+
+      // ── HTTP invocation ──
+      const res = await request(app.getHttpServer())
+        .patch('/api/v1/professors/11111111-1/assistance/10')
+        .send({ present: false });
+
+      // ── Asserts ──
+      expect(res.status).toBe(HttpStatus.OK);
+      expect(res.body).toEqual({
+        message: 'Assistance record updated successfully',
+        recordId: 10,
+        studentRut: '12345678-5',
+        present: false,
+      });
+
+      // ── Assert on DB state (side effect) ──
+      const inDb = await repo.findAssistanceById(10);
+      expect(inDb?.present).toBe(false);
+    });
+
+    it('should return HTTP 404 when the assistance record does not exist', async () => {
+      repo.seedTeaching('11111111-1', 'ASG-01');
+
+      const res = await request(app.getHttpServer())
+        .patch('/api/v1/professors/11111111-1/assistance/999')
+        .send({ present: true });
+
+      expect(res.status).toBe(HttpStatus.NOT_FOUND);
+      expect(res.body).toMatchObject({ recordId: 999 });
     });
   });
 });

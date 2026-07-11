@@ -43,6 +43,43 @@ export class InvalidQRException extends Error {
   }
 }
 
+// CU-03: RUT malformado o con dígito verificador incorrecto (assistance).
+// Distinta de InvalidRutFormatException (auth): mensaje y contexto propios del CU.
+export class InvalidRutException extends Error {
+  constructor(public readonly rut: string) {
+    super('El RUT ingresado no es válido. Ingrese el RUT nuevamente.');
+    this.name = 'InvalidRutException';
+  }
+}
+
+export class ClassNotFoundException extends Error {
+  constructor(public readonly classId: number) {
+    super(`Class ${classId} not found`);
+    this.name = 'ClassNotFoundException';
+  }
+}
+
+export class RegistrationAlreadyDisabledException extends Error {
+  constructor(public readonly classId: number) {
+    super(`Registration for class ${classId} is already disabled`);
+    this.name = 'RegistrationAlreadyDisabledException';
+  }
+}
+
+export class RegistrationAlreadyEnabledException extends Error {
+  constructor(public readonly classId: number) {
+    super(`Registration for class ${classId} is already enabled`);
+    this.name = 'RegistrationAlreadyEnabledException';
+  }
+}
+
+export class AssistanceRecordNotFoundException extends Error {
+  constructor(public readonly recordId: number) {
+    super(`Assistance record ${recordId} not found`);
+    this.name = 'AssistanceRecordNotFoundException';
+  }
+}
+
 export class EmptyCredentialsException extends Error {
   constructor(public readonly fields: string[]) {
     super('Debe completar los campos obligatorios');

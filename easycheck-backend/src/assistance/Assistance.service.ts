@@ -11,6 +11,11 @@ import {
   RegistrationDisabledException,
   DuplicateAssistanceException,
   InvalidQRException,
+  InvalidRutException,
+  ClassNotFoundException,
+  RegistrationAlreadyDisabledException,
+  RegistrationAlreadyEnabledException,
+  AssistanceRecordNotFoundException,
 } from '../common/exceptions';
 
 export interface StudentAssistanceDto {
@@ -40,6 +45,29 @@ export interface StudentSubjectAttendanceDto extends StudentSubjectAttendance {
   attendancePercentage: number;
 }
 
+// CU-07 / CU-08 — body de PATCH professors/:rut/classes/:id/registration
+export interface UpdateRegistrationStatusDto {
+  status: 'ENABLED' | 'DISABLED';
+}
+
+// CU-08 — body de PATCH professors/:rut/assistance/:id
+export interface EditAssistanceDto {
+  present: boolean;
+}
+
+export interface RegistrationStatusConfirmationDto {
+  message: string;
+  classId: number;
+  registrationStatus: 'ENABLED' | 'DISABLED';
+}
+
+export interface EditAssistanceConfirmationDto {
+  message: string;
+  recordId: number;
+  studentRut: string;
+  present: boolean;
+}
+
 @Injectable()
 export class AssistanceService {
   constructor(private readonly dataRepository: DataRepository) {}
@@ -48,14 +76,12 @@ export class AssistanceService {
     rut: string,
   ): Promise<StudentSubjectAttendanceDto[]> {
     if (!this.isValidRut(rut)) {
-      throw new Error(
-        'El RUT ingresado no es válido. Ingrese el RUT nuevamente.',
-      );
+      throw new InvalidRutException(rut);
     }
 
     const student = await this.dataRepository.findStudent(rut);
     if (!student) {
-      throw new Error('El estudiante ingresado no existe');
+      throw new StudentNotFoundException(rut);
     }
 
     const attendanceRows =
@@ -136,7 +162,7 @@ export class AssistanceService {
 
     const classSession = await this.dataRepository.findClass(dto.classId);
     if (!classSession) {
-      throw new Error(`Class ${dto.classId} not found`);
+      throw new ClassNotFoundException(dto.classId);
     }
 
     if (classSession.registrationStatus === 'DISABLED') {
@@ -181,5 +207,107 @@ export class AssistanceService {
     }
 
     return this.dataRepository.findStudentsAssistanceBySubject(subjectId);
+  }
+
+  // ── CU-07: Disable assistance registration for a class ───────────────────
+  async disableRegistration(
+    professorRut: string,
+    classId: number,
+  ): Promise<RegistrationStatusConfirmationDto> {
+    const classSession = await this.assertProfessorOwnsClass(
+      professorRut,
+      classId,
+    );
+
+    if (classSession.registrationStatus === 'DISABLED') {
+      throw new RegistrationAlreadyDisabledException(classId);
+    }
+
+    await this.dataRepository.updateClassRegistrationStatus(
+      classId,
+      'DISABLED',
+    );
+
+    return {
+      message: 'Registration disabled successfully',
+      classId,
+      registrationStatus: 'DISABLED',
+    };
+  }
+
+  // ── CU-08: Re-enable assistance registration for a class ─────────────────
+  async enableRegistration(
+    professorRut: string,
+    classId: number,
+  ): Promise<RegistrationStatusConfirmationDto> {
+    const classSession = await this.assertProfessorOwnsClass(
+      professorRut,
+      classId,
+    );
+
+    if (classSession.registrationStatus === 'ENABLED') {
+      throw new RegistrationAlreadyEnabledException(classId);
+    }
+
+    await this.dataRepository.updateClassRegistrationStatus(classId, 'ENABLED');
+
+    return {
+      message: 'Registration enabled successfully',
+      classId,
+      registrationStatus: 'ENABLED',
+    };
+  }
+
+  // ── CU-08: Edit a student's assistance record (present/absent) ───────────
+  async editAssistance(
+    professorRut: string,
+    recordId: number,
+    present: boolean,
+  ): Promise<EditAssistanceConfirmationDto> {
+    const record = await this.dataRepository.findAssistanceById(recordId);
+    if (!record) {
+      throw new AssistanceRecordNotFoundException(recordId);
+    }
+
+    const teaches = await this.dataRepository.findTeaching(
+      professorRut,
+      record.subjectId,
+    );
+    if (!teaches) {
+      throw new SubjectNotAssignedException(professorRut, record.subjectId);
+    }
+
+    await this.dataRepository.updateAssistancePresence(recordId, present);
+
+    return {
+      message: 'Assistance record updated successfully',
+      recordId,
+      studentRut: record.studentRut,
+      present,
+    };
+  }
+
+  // Shared CU-07/CU-08 check: the class exists and the professor teaches it.
+  private async assertProfessorOwnsClass(
+    professorRut: string,
+    classId: number,
+  ) {
+    const classSession = await this.dataRepository.findClass(classId);
+    if (!classSession) {
+      throw new ClassNotFoundException(classId);
+    }
+
+    const teaches = await this.dataRepository.findTeaching(
+      professorRut,
+      classSession.subjectId,
+    );
+    if (!teaches) {
+      throw new SubjectNotAssignedException(
+        professorRut,
+        classSession.subjectId,
+      );
+    }
+
+    return classSession;
   }
 }

@@ -110,6 +110,34 @@ export class DataRepository {
     return Promise.resolve(this.classes.find((c) => c.id === classId) ?? null);
   }
 
+  updateClassRegistrationStatus(
+    classId: number,
+    status: 'ENABLED' | 'DISABLED',
+  ): Promise<ClassSession | null> {
+    const classSession = this.classes.find((c) => c.id === classId);
+    if (!classSession) {
+      return Promise.resolve(null);
+    }
+    classSession.registrationStatus = status;
+    return Promise.resolve(classSession);
+  }
+
+  findAssistanceById(id: number): Promise<AssistanceRecord | null> {
+    return Promise.resolve(this.assistances.find((a) => a.id === id) ?? null);
+  }
+
+  updateAssistancePresence(
+    id: number,
+    present: boolean,
+  ): Promise<AssistanceRecord | null> {
+    const record = this.assistances.find((a) => a.id === id);
+    if (!record) {
+      return Promise.resolve(null);
+    }
+    record.present = present;
+    return Promise.resolve(record);
+  }
+
   assistanceExists(studentRut: string, classId: number): Promise<boolean> {
     return Promise.resolve(
       this.assistances.some(

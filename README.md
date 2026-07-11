@@ -37,12 +37,12 @@ npm run test:bdd
 
 1. CU-01 BDD Pasar a Nest / Pruebas de Humo / Ian
 2. CU-02 BDD Fran
-3. CU-03 TDD Fran
+3. CU-03 TDD (con endpoint HTTP expuesto) Fran
 4. CU-04 Pruebas de Humo / Hacer pruebas unitarias Ian 
 5. CU-05 Pruebas de Humo / Hacer pruebas unitarias Fran
 6. CU-06 Pruebas de Humo / Hacer pruebas unitarias
-7. CU-07 Hacer pruebas unitarias
-8. CU-08 Hacer pruebas unitarias
+7. CU-07 TDD + Integración
+8. CU-08 TDD + Integración
 9. CU-09 TDD /Ian
 
 ## Foro 8 SonarQube

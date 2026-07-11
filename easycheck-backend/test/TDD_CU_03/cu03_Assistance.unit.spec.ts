@@ -1,4 +1,5 @@
 import { AssistanceService } from '../../src/assistance/Assistance.service';
+import { StudentNotFoundException } from '../../src/common/exceptions';
 
 interface StudentSubjectAttendance {
   subjectName: string;
@@ -65,7 +66,7 @@ describe('CU-03 Mostrar asistencia por estudiantes (TDD)', () => {
 
     await expect(
       service.getStudentAttendanceByRut('12345678-5'),
-    ).rejects.toThrow('El estudiante ingresado no existe');
+    ).rejects.toThrow(StudentNotFoundException);
   });
 
   it('TC-CU03-04: retorna porcentaje 0 cuando una asignatura no tiene clases registradas', async () => {
