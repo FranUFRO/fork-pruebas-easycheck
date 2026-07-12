@@ -27,8 +27,8 @@ con una estrategia de calidad que incluya:
 | # | Objetivo | Estado |
 |---|----------|--------|
 | i | 100% de CU priorizados implementados | ✅ **Cumple** (9/9 endpoints; 2 son stubs) |
-| 1 | Cobertura unitaria ≥ 70% | ✅ **Cumple** (87–88% líneas/statements) |
-| 2 | Integración para **todos** los CU | ❌ **No cumple** (6/9) |
+| 1 | Cobertura unitaria ≥ 70% | ✅ **Cumple** (93–94% líneas/statements) |
+| 2 | Integración para **todos** los CU | ✅ **Cumple** (9/9) |
 | 3 | E2E para **todos** los CU | ❌ **No cumple** (0/9 reales) |
 | 4 | Carga/estrés + Grafana | ❌ **Ausente** |
 | 5 | SonarQube (mant./fiab./seguridad) | 🟡 **Configurado, sin evidencia de ejecución** |
@@ -76,35 +76,47 @@ Resultado real de `npm run test:cov` (ejecutado el 2026-07-11):
 
 | Métrica | Valor | ¿≥70%? |
 |---------|-------|:------:|
-| Statements | **88.6%** (490/553) | ✅ |
-| Branches | **71.13%** (175/246) | ✅ (ajustado) |
-| Functions | **92.17%** (106/115) | ✅ |
-| Lines | **87.69%** (442/504) | ✅ |
+| Statements | **94.21%** (521/553) | ✅ |
+| Branches | **79.67%** (196/246) | ✅ |
+| Functions | **97.39%** (112/115) | ✅ |
+| Lines | **93.65%** (472/504) | ✅ |
 
-- **10 suites / 50 tests, todos verdes.** Tiempo ~8 s. No requiere Docker/Postgres
+- **11 suites / 68 tests, todos verdes.** Tiempo ~8 s. No requiere Docker/Postgres
   (la app se cablea a repositorios en memoria sin `DB_HOST`).
-- Las cuatro métricas superan el 70%. **`branches` (71.1%) es el punto frágil**:
-  cualquier código nuevo con ramas sin probar puede bajarlo del umbral.
+- Las cuatro métricas superan el 70% con holgura. La incorporación de las pruebas
+  de integración IT-11…IT-13 (CU-01/02/09) subió la cobertura respecto a la medición
+  previa (statements 88.6% → 94.21%, branches 71.1% → 79.7%, lines 87.7% → 93.7%).
 - Exclusiones de cobertura (config Sonar/Jest): `src/seed/**`, `src/database/**` y
   los adaptadores `*.typeorm*` (solo ejercitables contra Postgres real).
 
-### 2) Pruebas de integración para todos los CU — ❌ No cumple (6/9)
+### 2) Pruebas de integración para todos los CU — ✅ Cumple (9/9)
 
-Existe **un** archivo de integración: `test/Assistance.integration.spec.ts`
-(casos IT-1 … IT-10), que cubre el módulo *assistance*:
+Los 9 casos de uso tienen pruebas de integración (Controller ↔ Service ↔
+Repository in-memory, vía `supertest`), repartidas en dos archivos:
+
+**`test/Assistance.integration.spec.ts`** (IT-1 … IT-10) — módulo *assistance*:
 
 | Caso | CU cubierto |
 |------|-------------|
 | IT-1, IT-2 | CU-04 (asistencia por asignatura: éxito / 404) |
 | IT-3, IT-4 | CU-06 (QR: 201 / 409 registro deshabilitado) |
 | IT-5, IT-6 | CU-05 (roster: éxito / profesor sin asignatura 404) |
-| IT-7 | CU-03 (por RUT: 200 / 400 / 404) |
+| IT-7 | CU-03 (por RUT: 200 / 400 / 404 / 403) |
 | IT-8 | CU-07 (deshabilitar: 200 / 404 / 409) |
 | IT-9 | CU-08 (habilitar: 200 / 409) |
 | IT-10 | CU-08 (editar asistencia: 200 / 404) |
 
-**Faltan por completo:** **CU-01** (login), **CU-02** (registro de usuario),
-**CU-09** (crear asignatura).
+**`test/AuthUsersSubject.integration.spec.ts`** (IT-11 … IT-13) — añadido para
+cerrar los CU que faltaban, siguiendo la misma estructura:
+
+| Caso | CU cubierto |
+|------|-------------|
+| IT-11 | CU-01 login (200 estudiante/profesor, 400 campos vacíos, 400 formato RUT, 403 cuenta deshabilitada, 401 credenciales) |
+| IT-12 | CU-02 registro (201, 409 duplicado, 404 no pertenece a la U, 400 credenciales institucionales, 400 rol no permitido, 400 formato RUT) |
+| IT-13 | CU-09 crear asignatura (201, 401 sin token, 403 rol no admin, 409 código duplicado, 400 campos faltantes, 400 caracteres inválidos) |
+
+**Resultado:** `npm run test:integration` → **2 suites / 35 tests en verde**.
+Cobertura de integración completa sobre los 9 CU (CU-01 … CU-09).
 
 ### 3) Pruebas E2E para todos los CU — ❌ No cumple (0/9 reales)
 
@@ -148,19 +160,21 @@ está **sin iniciar**.
 
 | CU | Unit (TDD) | Integración | E2E | BDD |
 |----|:---------:|:-----------:|:---:|:---:|
-| CU-01 Login | ❌ | ❌ | ❌ | ✅ |
-| CU-02 Registro | ❌ | ❌ | ❌ | ✅ |
+| CU-01 Login | ❌ | ✅ | ❌ | ✅ |
+| CU-02 Registro | ❌ | ✅ | ❌ | ✅ |
 | CU-03 Asistencia por RUT | ✅ | ✅ | ❌ | ❌ |
 | CU-04 Asistencia asignatura | ❌ | ✅ | ❌ | ❌ |
 | CU-05 Roster asignatura | ❌ | ✅ | ❌ | ❌ |
 | CU-06 Registro QR | ❌ | ✅ | ❌ | ❌ |
 | CU-07 Deshabilitar registro | ✅ | ✅ | ❌ | ❌ |
 | CU-08 Habilitar / editar | ✅ | ✅ | ❌ | ❌ |
-| CU-09 Crear asignatura | ✅ | ❌ | ❌ | ❌ |
+| CU-09 Crear asignatura | ✅ | ✅ | ❌ | ❌ |
 
 **Archivos de prueba (unit/TDD):** `test/TDD/Subject.unit.spec.ts`,
 `test/TDD/SubjectAuth.unit.spec.ts` (CU-09), `test/TDD_CU_03/…`,
 `test/TDD_CU_07/…`, `test/TDD_CU_08/…`.
+**Integración:** `test/Assistance.integration.spec.ts` (IT-1…IT-10),
+`test/AuthUsersSubject.integration.spec.ts` (IT-11…IT-13).
 
 ---
 
@@ -170,10 +184,9 @@ está **sin iniciar**.
 |-----------|--------|--------|----------|
 | 🔴 Alta | E2E de los 9 CU (0/9) | Implementar E2E reales con `supertest` + `app.init()` (reutilizar el patrón de `Assistance.integration.spec.ts`) | Medio |
 | 🔴 Alta | Carga/estrés + Grafana (ausente) | Montar k6 (o Artillery) exportando a Prometheus + dashboard Grafana sobre los endpoints clave | Medio-alto (infra nueva) |
-| 🟠 Media | Integración de CU-01, CU-02, CU-09 | Añadir specs de integración para login, registro y crear asignatura | Bajo |
+| ✅ Hecho | Integración de CU-01, CU-02, CU-09 | Añadidos IT-11/IT-12/IT-13 en `test/AuthUsersSubject.integration.spec.ts` (35 tests de integración en verde) | — |
 | 🟠 Media | Gherkin de los 7 CU restantes | Escribir features + steps para CU-03…CU-09 | Medio |
 | 🟡 Baja | SonarQube sin evidencia | Ejecutar el scanner y adjuntar el resultado del quality gate | Bajo |
-| 🟡 Baja | `branches` al límite (71.1%) | Reforzar tests de ramas para no caer bajo 70% al crecer el código | Bajo |
 
 ---
 
@@ -182,10 +195,10 @@ está **sin iniciar**.
 ```bash
 cd Easycheck-backend/easycheck-backend
 npm install
-npm run test:cov      # 10 suites / 50 tests + resumen de cobertura
-npm run test:bdd      # solo BDD (12 escenarios Gherkin)
-npm run test:integration
-npm run test:e2e      # actualmente solo el scaffold Hello World
+npm run test:cov          # 11 suites / 68 tests + resumen de cobertura
+npm run test:bdd          # solo BDD (12 escenarios Gherkin)
+npm run test:integration  # 2 suites / 35 tests (IT-1…IT-13)
+npm run test:e2e          # actualmente solo el scaffold Hello World
 ```
 
 ---
