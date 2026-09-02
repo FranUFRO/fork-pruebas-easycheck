@@ -83,7 +83,7 @@ npm run test:bdd -- --runInBand
 ```
 
 Ejecutan los escenarios funcionales escritos en `.feature`. Referencia: 9
-suites y 19 escenarios.
+suites y 47 escenarios.
 
 ## 5. Pruebas E2E
 

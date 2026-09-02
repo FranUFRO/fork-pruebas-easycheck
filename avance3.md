@@ -39,7 +39,7 @@ priorizados**, con una estrategia de calidad que incluya:
 | 3   | E2E para todos los CU                              | ✅ **Cumple**: 9/9 en Jest y smoke QR persistido en PostgreSQL              |
 | 4   | Carga/estrés + Grafana                             | 🟡 **Ejecución abreviada validada; perfiles finales y capturas pendientes** |
 | 5   | SonarQube (mantenibilidad, fiabilidad y seguridad) | 🟡 **Configurado; ejecución y quality gate (validar)**                      |
-| 6   | Escenarios Gherkin implementados y ejecutables     | ✅ **Cumple**: 9/9 CU, 19 escenarios verdes                                 |
+| 6   | Escenarios Gherkin implementados y ejecutables     | ✅ **Cumple**: 9/9 CU, 47 escenarios verdes                                 |
 | 7   | Informe, dashboards y video                        | ❌ **Pendiente de recopilación y entrega**                                  |
 
 **Leyenda:** ✅ cumple · 🟡 parcial o pendiente de validación externa · ❌ pendiente
@@ -238,11 +238,16 @@ real de `npm run test:bdd -- --runInBand`:
 | ------------------------- | ---------------: |
 | Features/CU automatizados |          **9/9** |
 | Suites                    |            **9** |
-| Escenarios                |           **19** |
+| Escenarios                |           **47** |
 | Estado                    | **Todos verdes** |
 
 Los archivos se ubican en `test/CU_XX/bdd/features` y
 `test/CU_XX/bdd/steps`, manteniendo juntos los escenarios y su implementación.
+
+**Actualización BDD:** después de ampliar CU-03 a CU-09 con escenarios positivos,
+negativos, de borde y de seguridad, la ejecución actual es de **47 escenarios
+aprobados de 47** (`npm run test:bdd -- --runInBand`). Este resultado reemplaza
+la cifra inicial de 19 escenarios del inventario anterior.
 
 ---
 
@@ -266,7 +271,7 @@ Resumen por nivel:
 | ----------------------- | -----: | -----------------: | -------- |
 | Unit/TDD                |     12 |                 51 | ✅ Verde |
 | Integración             |      9 |                 74 | ✅ Verde |
-| BDD                     |      9 |                 19 | ✅ Verde |
+| BDD                     |      9 |                 47 | ✅ Verde |
 | E2E                     |      9 |                  9 | ✅ Verde |
 | Combinado con cobertura |     40 |                154 | ✅ Verde |
 
@@ -310,7 +315,7 @@ Resumen por nivel:
 | ------------------------------- | ------------------------------------------------------------------------------- |
 | Código fuente completo          | ✅ Implementado y validado con Docker/PostgreSQL                                |
 | Unitarias, integración y E2E    | ✅ Completas y verdes                                                           |
-| Features Gherkin + glue/steps   | ✅ 9/9 CU y 19 escenarios verdes                                                |
+| Features Gherkin + glue/steps   | ✅ 9/9 CU y 47 escenarios verdes                                                |
 | Scripts de ejecución de pruebas | ✅ Disponibles en `package.json`                                                |
 | Scripts de carga/estrés         | ✅ Implementados y ejecutados en modo abreviado                                 |
 | Export de rendimiento           | ✅ JSON de carga y estrés generados                                             |
@@ -343,7 +348,7 @@ Resultados de referencia actuales:
 
 - TDD: 12 suites / 51 pruebas;
 - integración: 9 suites / 74 pruebas;
-- BDD: 9 suites / 19 escenarios;
+- BDD: 9 suites / 47 escenarios;
 - E2E: 9 suites / 9 pruebas;
 - cobertura combinada: 40 suites / 154 pruebas;
 - statements 94,15%, branches 81,83%, functions 97,39%, lines 94,24%.
